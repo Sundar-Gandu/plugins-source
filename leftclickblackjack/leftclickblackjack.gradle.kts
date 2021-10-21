@@ -25,10 +25,10 @@ import ProjectVersions.rlVersion
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-version = "5.2.1"
+version = "5.0.5"
 
-project.extra["PluginName"] = "Menu Entry Swapper Extended"
-project.extra["PluginDescription"] = "Change the default option that is displayed when hovering over objects"
+project.extra["PluginName"] = "Left Click Blackjack"
+project.extra["PluginDescription"] = "Allows for one-click blackjacking, both knocking out and pickpocketing"
 
 dependencies {
     annotationProcessor(Libraries.lombok)
@@ -39,11 +39,9 @@ dependencies {
 
     compileOnly(Libraries.apacheCommonsText)
     compileOnly(Libraries.guice)
-    compileOnly(Libraries.gson)
     compileOnly(Libraries.lombok)
     compileOnly(Libraries.pf4j)
     compileOnly(Libraries.rxjava)
-	compileOnly(group = "net.sf.jopt-simple", name = "jopt-simple", version = "5.0.4")
 }
 
 tasks {
