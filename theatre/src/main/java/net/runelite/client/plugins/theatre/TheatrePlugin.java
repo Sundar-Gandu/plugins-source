@@ -7,18 +7,18 @@
 
 package net.runelite.client.plugins.theatre;
 
-import com.google.common.base.Strings;
 import com.google.inject.Binder;
 import com.google.inject.Provides;
+import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Varbits;
 import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.ClientTick;
+import net.runelite.api.events.GameObjectSpawned;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GraphicsObjectCreated;
-import net.runelite.api.events.GroundObjectDespawned;
 import net.runelite.api.events.GroundObjectSpawned;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.MenuOpened;
@@ -27,6 +27,7 @@ import net.runelite.api.events.NpcChanged;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.NpcSpawned;
 import net.runelite.api.events.ProjectileMoved;
+import net.runelite.api.events.ProjectileSpawned;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -39,9 +40,6 @@ import net.runelite.client.plugins.theatre.Nylocas.Nylocas;
 import net.runelite.client.plugins.theatre.Sotetseg.Sotetseg;
 import net.runelite.client.plugins.theatre.Verzik.Verzik;
 import net.runelite.client.plugins.theatre.Xarpus.Xarpus;
-import net.runelite.client.util.Text;
-import javax.inject.Inject;
-import java.util.ArrayList;
 import org.pf4j.Extension;
 
 @Extension
@@ -86,8 +84,7 @@ public class TheatrePlugin extends Plugin
 	private Room[] rooms = null;
 
 	private boolean tobActive;
-	public static int partySize = 0;
-	private final ArrayList<String> playerList = new ArrayList<>();
+	public static int partySize;
 
 	@Override
 	public void configure(Binder binder)
@@ -106,7 +103,7 @@ public class TheatrePlugin extends Plugin
 	{
 		if (rooms == null)
 		{
-			rooms = new Room[]{ maiden, bloat, nylocas, sotetseg, xarpus, verzik};
+			rooms = new Room[]{maiden, bloat, nylocas, sotetseg, xarpus, verzik};
 
 			for (Room room : rooms)
 			{
@@ -127,9 +124,6 @@ public class TheatrePlugin extends Plugin
 		{
 			room.unload();
 		}
-
-		partySize = 0;
-		playerList.clear();
 	}
 
 	@Subscribe
@@ -165,13 +159,12 @@ public class TheatrePlugin extends Plugin
 	{
 		if (tobActive)
 		{
-			for (int v = 330; v < 335; ++v)
+			partySize = 0;
+			for (int i = 330; i < 335; i++)
 			{
-				String name = Text.standardize(client.getVarcStrValue(v));
-				if (!Strings.isNullOrEmpty(name) && !playerList.contains(name))
+				if (client.getVarcStrValue(i) != null && !client.getVarcStrValue(i).equals(""))
 				{
-					playerList.add(name);
-					partySize = playerList.size();
+					partySize++;
 				}
 			}
 		}
@@ -195,11 +188,6 @@ public class TheatrePlugin extends Plugin
 	public void onVarbitChanged(VarbitChanged event)
 	{
 		tobActive = client.getVar(Varbits.THEATRE_OF_BLOOD) > 1;
-		if (!tobActive)
-		{
-			partySize = 0;
-			playerList.clear();
-		}
 
 		bloat.onVarbitChanged(event);
 		nylocas.onVarbitChanged(event);
@@ -225,8 +213,8 @@ public class TheatrePlugin extends Plugin
 	public void onMenuOptionClicked(MenuOptionClicked option)
 	{
 		nylocas.onMenuOptionClicked(option);
-
 	}
+
 	@Subscribe
 	public void onMenuOpened(MenuOpened menu)
 	{
@@ -259,12 +247,6 @@ public class TheatrePlugin extends Plugin
 	}
 
 	@Subscribe
-	private void onGroundObjectDespawned(GroundObjectDespawned event)
-	{
-		xarpus.onGroundObjectDespawned(event);
-	}
-
-	@Subscribe
 	public void onAnimationChanged(AnimationChanged animationChanged)
 	{
 		bloat.onAnimationChanged(animationChanged);
@@ -276,6 +258,19 @@ public class TheatrePlugin extends Plugin
 	public void onProjectileMoved(ProjectileMoved event)
 	{
 		verzik.onProjectileMoved(event);
+	}
+
+	@Subscribe
+	public void onProjectileSpawned(ProjectileSpawned event)
+	{
+		sotetseg.onProjectileSpawned(event);
+		verzik.onProjectileSpawned(event);
+	}
+
+	@Subscribe
+	public void onGameObjectSpawn(GameObjectSpawned gameObject)
+	{
+		verzik.onGameObjectSpawn(gameObject);
 	}
 }
 

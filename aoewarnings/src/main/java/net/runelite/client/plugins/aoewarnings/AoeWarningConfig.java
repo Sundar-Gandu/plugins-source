@@ -28,7 +28,7 @@ package net.runelite.client.plugins.aoewarnings;
 
 import java.awt.Color;
 import java.awt.Font;
-import java.util.EnumSet;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -399,16 +399,15 @@ public interface AoeWarningConfig extends Config
 	String vorkathTitle = "Vorkath";
 
 	@ConfigItem(
-		keyName = "vorkath",
+		keyName = "vorkathModes",
 		name = "Vorkath",
 		description = "Configure what AoE projectiles you should be warned for at Vorkath",
 		section = vorkathTitle,
-		position = 28,
-		enumClass = VorkathMode.class
+		position = 28
 	)
-	default EnumSet<VorkathMode> vorkathModes()
+	default Set<VorkathMode> vorkathModes()
 	{
-		return EnumSet.allOf(VorkathMode.class);
+		return Set.of(VorkathMode.BOMBS, VorkathMode.FIRES, VorkathMode.POOLS, VorkathMode.SPAWN);
 	}
 
 	@ConfigItem(
@@ -588,6 +587,7 @@ public interface AoeWarningConfig extends Config
 	{
 		return false;
 	}
+
 	@ConfigItem(
 		keyName = "bombDisplay",
 		name = "Olm Bombs",
@@ -601,11 +601,36 @@ public interface AoeWarningConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "bombHeatmap",
+		name = "Bomb heatmap",
+		description = "Display a heatmap based on bomb tile severity.",
+		section = olmTitle,
+		position = 47
+	)
+	default boolean bombHeatmap()
+	{
+		return false;
+	}
+
+	@Range(max = 100)
+	@ConfigItem(
+		keyName = "bombHeatmapOpacity",
+		name = "Bomb opacity",
+		description = "Heatmap color opacity.",
+		section = olmTitle,
+		position = 48
+	)
+	default int bombHeatmapOpacity()
+	{
+		return 50;
+	}
+
+	@ConfigItem(
 		keyName = "bombDisplaynotify",
 		name = "Olm Bombs Notify",
 		description = "Configures whether or not AoE Projectile Warnings for Olm Bombs should trigger a notification",
 		section = olmTitle,
-		position = 47,
+		position = 49,
 		hide = "aoeNotifyAll"
 	)
 	default boolean bombDisplayNotifyEnabled()
@@ -618,7 +643,7 @@ public interface AoeWarningConfig extends Config
 		name = "Olm Lightning Trails",
 		description = "Show Lightning Trails",
 		section = olmTitle,
-		position = 49
+		position = 50
 	)
 	default boolean LightningTrail()
 	{
@@ -630,7 +655,7 @@ public interface AoeWarningConfig extends Config
 		name = "Olm Lightning Trails Notify",
 		description = "Configures whether or not AoE Projectile Warnings for Olm Lightning Trails should trigger a notification",
 		section = olmTitle,
-		position = 50,
+		position = 51,
 		hide = "aoeNotifyAll"
 	)
 	default boolean LightningTrailNotifyEnabled()
@@ -651,7 +676,7 @@ public interface AoeWarningConfig extends Config
 		name = "Corporeal Beast",
 		description = "Configures whether or not AoE Projectile Warnings for the Corporeal Beast are displayed",
 		section = corpTitle,
-		position = 52
+		position = 53
 	)
 	default boolean isCorpEnabled()
 	{

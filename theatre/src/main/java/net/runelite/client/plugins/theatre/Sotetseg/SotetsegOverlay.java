@@ -19,6 +19,7 @@ import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.plugins.theatre.RoomOverlay;
 import net.runelite.client.plugins.theatre.TheatreConfig;
 import net.runelite.client.ui.overlay.OverlayLayer;
+import net.runelite.client.ui.overlay.OverlayPriority;
 
 public class SotetsegOverlay extends RoomOverlay
 {
@@ -30,6 +31,7 @@ public class SotetsegOverlay extends RoomOverlay
 	{
 		super(config);
 		setLayer(OverlayLayer.ABOVE_SCENE);
+		setPriority(OverlayPriority.MED);
 	}
 
 	@Override
@@ -49,13 +51,25 @@ public class SotetsegOverlay extends RoomOverlay
 				}
 			}
 
+			if (config.sotetsegAttackCounter())
+			{
+				int attack = sotetseg.getAttacksLeft();
+				if (attack >= 0)
+				{
+					NPC boss = sotetseg.getSotetsegNPC();
+					final String attacksCounted = String.valueOf(sotetseg.getAttacksLeft());
+					Point canvasPoint = boss.getCanvasTextLocation(graphics, attacksCounted, 250);
+					renderTextLocation(graphics, attacksCounted, Color.YELLOW, canvasPoint);
+				}
+			}
+
 			if (config.sotetsegOrbAttacksTicks() || config.sotetsegBigOrbTicks())
 			{
 				for (Projectile p : client.getProjectiles())
 				{
 					int id = p.getId();
 
-					Point point = Perspective.localToCanvas(client, new LocalPoint((int)p.getX(), (int)p.getY()), 0, Perspective.getTileHeight(client, new LocalPoint((int)p.getX(), (int)p.getY()), p.getFloor()) - (int)p.getZ());
+					Point point = Perspective.localToCanvas(client, new LocalPoint((int) p.getX(), (int) p.getY()), 0, Perspective.getTileHeight(client, new LocalPoint((int) p.getX(), (int) p.getY()), p.getFloor()) - (int) p.getZ());
 
 					if (point == null)
 					{

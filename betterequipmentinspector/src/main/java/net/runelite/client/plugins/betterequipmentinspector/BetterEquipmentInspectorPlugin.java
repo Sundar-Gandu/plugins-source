@@ -106,7 +106,7 @@ public class BetterEquipmentInspectorPlugin extends Plugin
 			menuManager.addPlayerMenuItem(INSPECT_EQUIPMENT);
 		}
 
-		final BufferedImage icon = ImageUtil.getResourceStreamFromClass(this.getClass(), "normal.png");
+		final BufferedImage icon = ImageUtil.loadImageResource(this.getClass(), "normal.png");
 
 		navButton = NavigationButton.builder()
 			.tooltip("Equipment Inspector")
@@ -160,8 +160,7 @@ public class BetterEquipmentInspectorPlugin extends Plugin
 
 		for (KitType kitType : KitType.values())
 		{
-			if (kitType == KitType.RING || kitType == KitType.AMMUNITION ||
-				player.getPlayer().getPlayerComposition() == null)
+			if (player.getPlayer().getPlayerComposition() == null)
 			{
 				continue;
 			}

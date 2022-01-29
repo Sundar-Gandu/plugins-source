@@ -36,10 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -53,10 +50,13 @@ import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
+import net.runelite.api.VarClientInt;
 import net.runelite.api.Varbits;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.util.Text;
+import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
@@ -68,8 +68,6 @@ import net.runelite.client.menus.MenuManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.plugins.PluginManager;
-import net.runelite.client.plugins.menuentryswapper.Swap;
-import net.runelite.client.plugins.menuentryswapperextended.util.AbstractComparableEntry;
 import net.runelite.client.plugins.menuentryswapperextended.util.BurningAmuletMode;
 import net.runelite.client.plugins.menuentryswapperextended.util.BuyMode;
 import net.runelite.client.plugins.menuentryswapperextended.util.CombatBraceletMode;
@@ -89,8 +87,8 @@ import net.runelite.client.plugins.menuentryswapperextended.util.QuestCapeMode;
 import net.runelite.client.plugins.menuentryswapperextended.util.RingOfWealthMode;
 import net.runelite.client.plugins.menuentryswapperextended.util.SellMode;
 import net.runelite.client.plugins.menuentryswapperextended.util.SkillsNecklaceMode;
+import net.runelite.client.plugins.menuentryswapperextended.util.Swap;
 import net.runelite.client.plugins.menuentryswapperextended.util.XericsTalismanMode;
-import org.apache.commons.lang3.tuple.Pair;
 import org.pf4j.Extension;
 
 @Extension
@@ -130,10 +128,7 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 	public EventBus eventBus;
 
 	@Inject
-	private CustomSwaps customswaps;
-
-	private final Map<AbstractComparableEntry, Integer> customSwaps = new HashMap<>();
-	private final List<Pair<AbstractComparableEntry, AbstractComparableEntry>> prioSwaps = new ArrayList<>();
+	private CustomSwaps customSwaps;
 
 	private static <T extends Comparable<? super T>> void sortedInsert(List<T> list,
 			T value) // NOPMD: UnusedPrivateMethod: false positive
@@ -171,8 +166,8 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 	public void startUp()
 	{
 		parseOldFormatConfig();
-		eventBus.register(customswaps);
-		customswaps.startup();
+		eventBus.register(customSwaps);
+		customSwaps.startup();
 
 		loadSwaps();
 	}
@@ -181,7 +176,7 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 	public void shutDown()
 	{
 		eventBus.unregister(customSwaps);
-		customswaps.shutdown();
+		customSwaps.shutdown();
 		swaps.clear();
 	}
 
@@ -244,7 +239,7 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 	private void swapMenuEntry(int index, MenuEntry menuEntry)
 	{
 		final int eventId = menuEntry.getIdentifier();
-		final MenuAction menuAction = MenuAction.of(menuEntry.getType());
+		final MenuAction menuAction = menuEntry.getType();
 		final String option = Text.removeTags(menuEntry.getOption()).toLowerCase();
 		final String target = Text.removeTags(menuEntry.getTarget()).toLowerCase();
 		final NPC hintArrowNpc = client.getHintArrowNpc();
@@ -279,7 +274,7 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 		}
 	}
 
-	@Subscribe
+	@Subscribe (priority = -1)
 	public void onClientTick(ClientTick clientTick)
 	{
 		// The menu is not rebuilt when it is open, so don't swap or else it will
@@ -370,27 +365,60 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 
 	private void swap(ArrayListMultimap<String, Integer> optionIndexes, MenuEntry[] entries, int index1, int index2)
 	{
-		MenuEntry entry1 = entries[index1],
-				entry2 = entries[index2];
+		Widget eq = client.getWidget(WidgetInfo.EQUIPMENT);
+		if (client.getVar(VarClientInt.INVENTORY_TAB) == 4 && eq != null)
+		{
+			MenuEntry[] clonedEntries = new MenuEntry[entries.length];
+			System.arraycopy(entries, 0, clonedEntries, 0, entries.length);
 
-		entries[index1] = entry2;
-		entries[index2] = entry1;
+			MenuEntry entry1 = entries[index1];
+			MenuEntry entry2 = entries[index2];
 
-		client.setMenuEntries(entries);
+			int temp = entry1.getType().getId();
+			entry1.setType(entry2.getType());
+			entry2.setType(MenuAction.of(temp));
 
-		// Update optionIndexes
-		String option1 = Text.removeTags(entry1.getOption()).toLowerCase(),
-				option2 = Text.removeTags(entry2.getOption()).toLowerCase();
+			clonedEntries[index1] = entry2;
+			clonedEntries[index2] = entry1;
 
-		List<Integer> list1 = optionIndexes.get(option1),
-				list2 = optionIndexes.get(option2);
+			client.setMenuEntries(clonedEntries);
 
-		// call remove(Object) instead of remove(int)
-		list1.remove((Integer) index1);
-		list2.remove((Integer) index2);
+			String option1 = Text.removeTags(entry1.getOption()).toLowerCase(),
+					option2 = Text.removeTags(entry2.getOption()).toLowerCase();
 
-		sortedInsert(list1, index2);
-		sortedInsert(list2, index1);
+			List<Integer> list1 = optionIndexes.get(option1),
+					list2 = optionIndexes.get(option2);
+
+			list1.remove((Integer) index1);
+			list2.remove((Integer) index2);
+
+			sortedInsert(list1, index2);
+			sortedInsert(list2, index1);
+		}
+		else
+		{
+			MenuEntry entry1 = entries[index1],
+					entry2 = entries[index2];
+
+			entries[index1] = entry2;
+			entries[index2] = entry1;
+
+			client.setMenuEntries(entries);
+
+			// Update optionIndexes
+			String option1 = Text.removeTags(entry1.getOption()).toLowerCase(),
+					option2 = Text.removeTags(entry2.getOption()).toLowerCase();
+
+			List<Integer> list1 = optionIndexes.get(option1),
+					list2 = optionIndexes.get(option2);
+
+			// call remove(Object) instead of remove(int)
+			list1.remove((Integer) index1);
+			list2.remove((Integer) index2);
+
+			sortedInsert(list1, index2);
+			sortedInsert(list2, index1);
+		}
 	}
 
 	private boolean shiftModifier()
@@ -684,7 +712,8 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 						{
 							invItemNames.add(client.getItemDefinition((i.getId())).getName());
 						}
-						if (invItemNames.contains("Clue scroll (beginner)") || bankItemNames.contains("Clue scroll (beginner)"))
+						if (invItemNames.contains("Clue scroll (beginner)") || bankItemNames.contains("Clue scroll (beginner)")
+							|| (invItemNames.contains("Clue scroll (easy)") || bankItemNames.contains("Clue scroll (easy)")))
 						{
 							return false;
 						}
@@ -735,7 +764,7 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 			}
 		}
 
-		if (config.hideAttack() && entry.getType() == MenuAction.NPC_SECOND_OPTION.getId())
+		if (config.hideAttack() && entry.getType().getId() == MenuAction.NPC_SECOND_OPTION.getId())
 		{
 			NPC npc = client.getCachedNPCs()[entry.getIdentifier()];
 			if (npc != null && npc.getName() != null && npc.getHealthRatio() == 0 && !hideAttackIgnoredNPCs.contains(Text.standardize(npc.getName())))
@@ -746,13 +775,13 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 
 		if (config.hideCastRaids() && (client.getVar(Varbits.IN_RAID) == 1 || client.getVar(Varbits.THEATRE_OF_BLOOD) == 2))
 		{
-			if (client.getSpellSelected() && !hideCastIgnoredSpells.contains(Text.standardize(client.getSelectedSpellName())) && entry.getType() == MenuAction.SPELL_CAST_ON_PLAYER.getId())
+			if (client.getSpellSelected() && !hideCastIgnoredSpells.contains(Text.standardize(client.getSelectedSpellName())) && entry.getType().getId() == MenuAction.SPELL_CAST_ON_PLAYER.getId())
 			{
 				return false;
 			}
 		}
 
-		if (config.hideCastThralls() && target.contains("thrall") && entry.getType() == MenuAction.SPELL_CAST_ON_NPC.getId())
+		if (config.hideCastThralls() && target.contains("thrall") && entry.getType().getId() == MenuAction.SPELL_CAST_ON_NPC.getId())
 		{
 			return false;
 		}
@@ -763,37 +792,7 @@ public class MenuEntrySwapperExtendedPlugin extends Plugin
 	private MenuEntry[] updateMenuEntries(MenuEntry[] menuEntries)
 	{
 		return Arrays.stream(menuEntries)
-				.filter(filterMenuEntries).sorted((o1, o2) ->
-				{
-					//Priority swaps
-					var prioSwap = prioSwaps
-							.stream()
-							.filter(o -> o.getKey().matches(o1) && o.getValue().matches(o2))
-							.findFirst();
-					if (prioSwap.isPresent())
-					{
-						return 1;
-					}
-
-					prioSwap = prioSwaps
-							.stream()
-							.filter(o -> o.getKey().matches(o2) && o.getValue().matches(o1))
-							.findFirst();
-					if (prioSwap.isPresent())
-					{
-						return -1;
-					}
-
-					return 0;
-				})
-				.sorted(
-						//Hotkey swaps
-						Comparator.comparingInt(o -> customSwaps.entrySet()
-								.stream()
-								.filter(x -> x.getKey().matches(o))
-								.map(x -> x.getValue())
-								.sorted(Comparator.reverseOrder())
-								.findFirst().orElse(Integer.MIN_VALUE)))
+				.filter(filterMenuEntries).sorted((o1, o2) -> 0)
 				.toArray(MenuEntry[]::new);
 	}
 
